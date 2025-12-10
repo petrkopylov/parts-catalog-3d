@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <!-- Критически важный метатег для мобильных устройств -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D Каталог запчастей</title>
+    
+    <!-- Подключаем стили -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Подключаем Three.js из CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    
+    <!-- Иконки Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 3D Каталог запчастей</h1>
+            <p>Кликайте или касайтесь деталей для получения информации</p>
+            <div class="device-warning" id="deviceWarning">
+                <i class="fas fa-mobile-alt"></i> Режим мобильного устройства
+            </div>
+        </header>
+        
+        <main>
+            <div class="main-layout">
+                <!-- Левая панель: список моделей -->
+                <div class="sidebar">
+                    <h3><i class="fas fa-folder-open"></i> Доступные модели</h3>
+                    <div class="model-list">
+                        <div class="model-item active" data-model="cube">
+                            <div class="model-icon">◻️</div>
+                            <div class="model-info">
+                                <h4>Куб</h4>
+                                <p>Базовая деталь</p>
+                            </div>
+                        </div>
+                        <div class="model-item" data-model="gear">
+                            <div class="model-icon">⚙️</div>
+                            <div class="model-info">
+                                <h4>Шестеренка</h4>
+                                <p>Z=20, модуль 2</p>
+                            </div>
+                        </div>
+                        <div class="model-item" data-model="bolt">
+                            <div class="model-icon">🔩</div>
+                            <div class="model-info">
+                                <h4>Болт М10</h4>
+                                <p>DIN 933</p>
+                            </div>
+                        </div>
+                        <div class="model-item" data-model="bearing">
+                            <div class="model-icon">🛞</div>
+                            <div class="model-info">
+                                <h4>Подшипник</h4>
+                                <p>6205-2RS</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="controls-panel">
+                        <h4><i class="fas fa-gamepad"></i> Управление</h4>
+                        <div class="control-buttons">
+                            <button id="reset-view" class="control-btn">
+                                <i class="fas fa-home"></i> Сброс вида
+                            </button>
+                            <button id="auto-rotate" class="control-btn">
+                                <i class="fas fa-sync-alt"></i> Вращение
+                            </button>
+                            <button id="toggle-grid" class="control-btn">
+                                <i class="fas fa-th"></i> Сетка
+                            </button>
+                            <button id="toggle-axes" class="control-btn">
+                                <i class="fas fa-crosshairs"></i> Оси
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Центральная панель: 3D просмотр -->
+                <div class="content">
+                    <div class="model-viewer-header">
+                        <h2 id="current-model-title">Куб</h2>
+                        <div class="viewer-stats">
+                            <span id="fps-counter">FPS: 60</span>
+                            <span id="polygon-count">Полигонов: 0</span>
+                            <span id="touch-status"><i class="fas fa-hand-pointer"></i> Касание</span>
+                        </div>
+                    </div>
+                    
+                    <div class="canvas-container">
+                        <!-- Контейнер для Three.js сцены -->
+                        <canvas id="three-canvas"></canvas>
+                        
+                        <!-- Индикатор загрузки -->
+                        <div id="loading-indicator" class="loading-indicator">
+                            <div class="spinner"></div>
+                            <p>Загрузка модели...</p>
+                        </div>
+                        
+                        <!-- Инструкция для мобильных -->
+                        <div class="canvas-instructions">
+                            <div class="instructions-mobile">
+                                <p><i class="fas fa-hand-pointer"></i> <strong>Одно касание:</strong> Выбрать деталь</p>
+                                <p><i class="fas fa-hand-rock"></i> <strong>Два пальца:</strong> Вращение/Масштаб</p>
+                            </div>
+                            <div class="instructions-desktop">
+                                <p><strong>ЛКМ:</strong> Выбор | <strong>ПКМ:</strong> Вращение</p>
+                                <p><strong>Колесико:</strong> Приближение</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Всплывающее окно (адаптировано для мобильных) -->
+                    <div id="selection-popup" class="selection-popup">
+                        <div class="popup-header">
+                            <h3 id="selected-object-name">Выбранная деталь</h3>
+                            <button id="close-popup" class="close-btn">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="popup-content">
+                            <div class="selected-info">
+                                <p><strong>ID:</strong> <span id="selected-object-id">-</span></p>
+                                <p><strong>Материал:</strong> <span id="selected-object-material">-</span></p>
+                                <p><strong>Полигонов:</strong> <span id="selected-object-polygons">-</span></p>
+                            </div>
+                            <div class="popup-actions">
+                                <button id="view-details" class="action-btn primary">
+                                    <i class="fas fa-info-circle"></i> Карточка товара
+                                </button>
+                                <button id="add-to-cart" class="action-btn secondary">
+                                    <i class="fas fa-shopping-cart"></i> В корзину
+                                </button>
+                                <button id="highlight-part" class="action-btn">
+                                    <i class="fas fa-highlighter"></i> Подсветить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Правая панель: информация -->
+                <div class="info-sidebar">
+                    <h3><i class="fas fa-info-circle"></i> Информация</h3>
+                    <div class="selected-object-info">
+                        <div class="info-section">
+                            <h4>Выбранный объект</h4>
+                            <p id="info-object-name">Нет выбора</p>
+                        </div>
+                        <div class="info-section">
+                            <h4>Параметры</h4>
+                            <ul id="info-parameters">
+                                <li>Выберите деталь касанием</li>
+                            </ul>
+                        </div>
+                        <div class="info-section">
+                            <h4>Статус</h4>
+                            <div class="status-indicator" id="selection-status">
+                                <span class="status-dot"></span>
+                                <span>Не выбрано</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="cart-preview">
+                        <h4><i class="fas fa-shopping-cart"></i> Корзина</h4>
+                        <div class="cart-items">
+                            <p id="cart-empty">Корзина пуста</p>
+                            <ul id="cart-items-list" style="display: none;"></ul>
+                        </div>
+                        <button id="view-cart" class="cart-btn">
+                            <i class="fas fa-shopping-basket"></i> Перейти в корзину
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p><i class="fas fa-mobile-alt"></i> Оптимизировано для мобильных устройств | © 2023 3D Каталог</p>
+        </footer>
+    </div>
+    
+    <!-- Подключаем наш основной скрипт -->
+    <script src="script.js"></script>
+</body>
+</html><!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Каталог запчастей</title>
+    
+    <!-- Подключаем стили -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Подключаем Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/RaycasterHelper.js"></script>
+    
+    <!-- Иконки для кнопок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 3D Каталог запчастей</h1>
+            <p>Кликайте на детали для получения информации</p>
+        </header>
+        
+        <main>
+            <div class="main-layout">
+                <!-- Левая панель: список моделей -->
+                <div class="sidebar">
+                    <h3>📂 Доступные модели</h3>
+                    <div class="model-list">
+                        <div class="model-item active" data-model="cube">
+                            <div class="model-icon">◻️</div>
+                            <div class="model-info">
+                                <h4>Куб</h4>
+                                <p>Базовая деталь</p>
+                            </div>
+                        </div>
+                        <div class="model-item" data-model="gear">
+                            <div class="model-icon">⚙️</div>
+                            <div class="model-info">
+                                <h4>Шестеренка</h4>
+                                <p>Z=20, модуль 2</p>
+                            </div>
+                        </div>
+                        <div class="model-item" data-model="bolt">
+                            <div class="model-icon">🔩</div>
+                            <div class="model-info">
+                                <h4>Болт М10</h4>
+                                <p>DIN 933</p>
+                            </div>
+                        </div>
+                        <div class="model-item" data-model="bearing">
+                            <div class="model-icon">🛞</div>
+                            <div class="model-info">
+                                <h4>Подшипник</h4>
+                                <p>6205-2RS</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="controls-panel">
+                        <h4>Управление</h4>
+                        <div class="control-buttons">
+                            <button id="reset-view" class="control-btn">
+                                <i class="fas fa-home"></i> Сброс вида
+                            </button>
+                            <button id="auto-rotate" class="control-btn">
+                                <i class="fas fa-sync-alt"></i> Вращение
+                            </button>
+                            <button id="toggle-grid" class="control-btn">
+                                <i class="fas fa-th"></i> Сетка
+                            </button>
+                            <button id="toggle-axes" class="control-btn">
+                                <i class="fas fa-crosshairs"></i> Оси
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Центральная панель: 3D просмотр -->
+                <div class="content">
+                    <div class="model-viewer-header">
+                        <h2 id="current-model-title">Куб</h2>
+                        <div class="viewer-stats">
+                            <span id="fps-counter">FPS: 60</span>
+                            <span id="polygon-count">Полигонов: 0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="canvas-container">
+                        <!-- Контейнер для Three.js сцены -->
+                        <canvas id="three-canvas"></canvas>
+                        
+                        <!-- Индикатор загрузки -->
+                        <div id="loading-indicator" class="loading-indicator">
+                            <div class="spinner"></div>
+                            <p>Загрузка модели...</p>
+                        </div>
+                        
+                        <!-- Инструкция -->
+                        <div class="canvas-instructions">
+                            <p><strong>ЛКМ:</strong> Выбрать деталь | <strong>ПКМ:</strong> Вращение</p>
+                            <p><strong>Колесико:</strong> Приблизить | <strong>Shift+ЛКМ:</strong> Панорамирование</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Всплывающее окно (скрыто по умолчанию) -->
+                    <div id="selection-popup" class="selection-popup">
+                        <div class="popup-header">
+                            <h3 id="selected-object-name">Выбранная деталь</h3>
+                            <button id="close-popup" class="close-btn">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="popup-content">
+                            <div class="selected-info">
+                                <p><strong>ID:</strong> <span id="selected-object-id">-</span></p>
+                                <p><strong>Материал:</strong> <span id="selected-object-material">-</span></p>
+                                <p><strong>Полигонов:</strong> <span id="selected-object-polygons">-</span></p>
+                            </div>
+                            <div class="popup-actions">
+                                <button id="view-details" class="action-btn primary">
+                                    <i class="fas fa-info-circle"></i> Карточка товара
+                                </button>
+                                <button id="add-to-cart" class="action-btn secondary">
+                                    <i class="fas fa-shopping-cart"></i> В корзину
+                                </button>
+                                <button id="highlight-part" class="action-btn">
+                                    <i class="fas fa-highlighter"></i> Подсветить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Правая панель: информация о выбранном -->
+                <div class="info-sidebar">
+                    <h3>📋 Информация</h3>
+                    <div class="selected-object-info">
+                        <div class="info-section">
+                            <h4>Выбранный объект</h4>
+                            <p id="info-object-name">Нет выбора</p>
+                        </div>
+                        <div class="info-section">
+                            <h4>Параметры</h4>
+                            <ul id="info-parameters">
+                                <li>Выберите деталь</li>
+                            </ul>
+                        </div>
+                        <div class="info-section">
+                            <h4>Статус</h4>
+                            <div class="status-indicator" id="selection-status">
+                                <span class="status-dot"></span>
+                                <span>Не выбрано</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="cart-preview">
+                        <h4>🛒 Корзина</h4>
+                        <div class="cart-items">
+                            <p id="cart-empty">Корзина пуста</p>
+                            <ul id="cart-items-list" style="display: none;"></ul>
+                        </div>
+                        <button id="view-cart" class="cart-btn">
+                            <i class="fas fa-shopping-basket"></i> Перейти в корзину
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>© 2023 Интерактивный каталог запчастей. Для выбора кликните на деталь в 3D модели.</p>
+        </footer>
+    </div>
+    
+    <!-- Подключаем наш основной скрипт -->
+    <script src="script.js"></script>
+</body>
+</html>
