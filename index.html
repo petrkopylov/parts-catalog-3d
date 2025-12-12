@@ -1,0 +1,34 @@
+<!-- Левая панель: список деталей в сборке (будет заполняться скриптом) -->
+<div class="sidebar">
+    <h3><i class="fas fa-cube"></i> Детали сборки</h3>
+    <div class="assembly-info">
+        <p id="assembly-name">Загрузка...</p>
+        <p id="parts-count">Деталей: 0</p>
+    </div>
+    <div class="model-list" id="parts-list">
+        <!-- Список деталей будет сгенерирован JavaScript -->
+        <div class="part-item">
+            <div class="model-icon">⏳</div>
+            <div class="model-info">
+                <h4>Загрузка деталей...</h4>
+                <p>Пожалуйста, подождите</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls-panel">
+        <h4><i class="fas fa-gamepad"></i> Управление</h4>
+        <div class="control-buttons">
+            <!-- Кнопка "Показать все" будет скрывать/показывать подсветку всех деталей -->
+            <button id="show-all" class="control-btn">
+                <i class="fas fa-eye"></i> Показать все
+            </button>
+            <button id="reset-view" class="control-btn">
+                <i class="fas fa-home"></i> Сброс вида
+            </button>
+            <button id="toggle-grid" class="control-btn">
+                <i class="fas fa-th"></i> Сетка
+            </button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,81 @@
+/* Стили для списка деталей сборки */
+.assembly-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid #3498db;
+}
+
+.assembly-info p {
+    margin: 5px 0;
+    font-size: 0.9rem;
+}
+
+#assembly-name {
+    font-weight: bold;
+    color: #2c3e50;
+    font-size: 1rem !important;
+}
+
+.part-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    margin-bottom: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    position: relative;
+}
+
+.part-item:hover {
+    background: #e3f2fd;
+    transform: translateX(3px);
+}
+
+.part-item.active {
+    background: #e3f2fd;
+    border-color: #2ecc71;
+    box-shadow: 0 3px 10px rgba(46, 204, 113, 0.2);
+}
+
+.part-toggle {
+    margin-left: auto;
+    padding: 5px 10px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.part-toggle:hover {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.part-toggle i {
+    color: #7f8c8d;
+    font-size: 1rem;
+}
+
+.no-parts {
+    text-align: center;
+    color: #7f8c8d;
+    padding: 20px;
+    font-style: italic;
+}
+
+/* Адаптивность для списка деталей */
+@media (max-width: 768px) {
+    .part-item {
+        padding: 10px;
+    }
+    
+    .model-icon {
+        font-size: 20px;
+        width: 40px;
+        height: 40px;
+    }
+}
